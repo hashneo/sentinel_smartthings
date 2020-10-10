@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "Sentinel Motion Sensor", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+    definition (name: "Motion Sensor", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
         capability "Motion Sensor"
         capability "Sensor"
