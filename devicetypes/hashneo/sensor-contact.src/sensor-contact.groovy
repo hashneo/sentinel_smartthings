@@ -15,7 +15,7 @@
 metadata {
     definition (name: "sensor-contact", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
-        capability "Motion Sensor"
+        capability "Contact Sensor"
         capability "Sensor"
 
         command "updateStatus"
@@ -28,27 +28,24 @@ metadata {
     tiles(scale: 2) {
         multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
             tileAttribute ("device.contact", key: "PRIMARY_CONTROL") {
-                attributeState "inactive", label:'no contact', icon:"st.contact.contact.inactive", backgroundColor:"#ffffff"
-                attributeState "active", label:'contact', icon:"st.contact.contact.active", backgroundColor:"#53a7c0"
+                attributeState "closed", label:'no contact', icon:"st.contact.contact.inactive", backgroundColor:"#ffffff"
+                attributeState "open", label:'contact', icon:"st.contact.contact.active", backgroundColor:"#53a7c0"
             }
         }
-
-        main "updateStatus"
-
-        details(["updateStatus"])
     }
 }
 
 def updateStatus(Map status) {
-
     log.debug "updateStatus => '${status}'"
-    // need to convert open to active and closed to inactive
 
     def newState = status.tripped.current ? "open" : "closed"
-
     def desc = status.tripped.current ? "Contact Open" : "Contact Closed"
 
-    sendEvent(name: "contact", value: "${newState}", descriptionText: "${desc}")
-    
-   	sendEvent(name: "battery", value: status.battery.level, display: true, displayed: true)
+    sendEvent(name: "contact", value: newState, descriptionText: desc)
+   	sendEvent(name: "battery", value: status.battery?.level, display: status.battery != null, displayed: status.battery != null, descriptionText: (status.battery == null ? "No Battery Present" : "") )
+}
+
+def checkState() {
+	log.debug "checking state"
+    sendEvent (name: "contact", value: "closed")
 }

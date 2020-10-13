@@ -32,23 +32,20 @@ metadata {
                 attributeState "active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#53a7c0"
             }
         }
-
-        main "updateStatus"
-
-        details(["updateStatus"])
     }
 }
 
 def updateStatus(Map status) {
-
     log.debug "updateStatus => '${status}'"
-    // need to convert open to active and closed to inactive
 
     def newState = status.tripped.current ? "active" : "inactive"
-
     def desc = status.tripped.current ? "Detected Motion" : "Motion Has Stopped"
 
     sendEvent (name: "motion", value: "${newState}", descriptionText: "${desc}")
+   	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)
+}
 
-   	sendEvent(name: "battery", value: status.battery.level, display: true, displayed: true)
+def checkState() {
+	log.debug "checking state"
+    sendEvent (name: "motion", value: "inactive")
 }

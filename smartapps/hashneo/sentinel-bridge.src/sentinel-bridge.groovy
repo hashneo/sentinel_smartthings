@@ -81,12 +81,23 @@ def lanResponseHandler(evt) {
 }
 
 private processEvent(evt) {
-  log.debug "processEvent: ${evt.type}"
 
-  switch (evt.type){
-	case 'device.update':
-  	break
-  }
+	def deviceId = evt.payload?.id
+
+    if ( deviceId ){
+
+        def childDevice = getChildDevice(deviceId)
+
+		if ( childDevice ) {
+	    	log.debug "processEvent: ${evt.type} for device id => ${deviceId}"
+
+            switch (evt.type){
+                case 'device.update':
+                	childDevice.updateStatus( evt.payload?.value );
+                break
+            }
+        }
+   	}
 }
 
 private getEmail(){
@@ -221,6 +232,11 @@ private loadDevices(){
 }
 
 private createChildDevices(data){
+
+	def hostHub = location.hubs[0]
+
+    //removeChildDevices();
+
     data.devices.each {
         def device = it;
 
@@ -232,8 +248,12 @@ private createChildDevices(data){
 
             switch ( device.type ){
                 case "sensor.motion":
+                      addChildDevice("hashneo", "sensor-motion", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
+                      log.debug "Created new device -> ${device.name}"
                 break;
                 case "sensor.contact":
+                      addChildDevice("hashneo", "sensor-contact", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
+                      log.debug "Created new device -> ${device.name}"
                 break;
             }
 
@@ -272,8 +292,8 @@ private getJsonFromText(text) {
 }
 
 private getNotifyAddress() {
-	def hub = location.hubs[0]
-  	return "http://" + hub.localIP + ":" + hub.localSrvPortTCP + "/notify"
+	def hostHub = location.hubs[0]
+  	return "http://" + hostHub.localIP + ":" + hostHub.localSrvPortTCP + "/notify"
 }
 
 private String convertIPtoHex(ipAddress) {
@@ -282,5 +302,9 @@ private String convertIPtoHex(ipAddress) {
 
 private String convertPortToHex(port) {
   return port.toString().format( '%04x', port.toInteger() ).toUpperCase()
+}
+
+private removeChildDevices() {
+  getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
 }
 
