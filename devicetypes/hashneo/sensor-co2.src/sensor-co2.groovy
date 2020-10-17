@@ -1,5 +1,5 @@
 /**
- *  sensor-motion
+ *  sensor-carbonMonoxide
  *
  *  Copyright 2020 Steven Taylor
  *
@@ -13,9 +13,9 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "sensor-motion", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+    definition (name: "sensor-co2", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
-        capability "Motion Sensor"
+        capability "Carbon Monoxide Detector"
 
         command "updateStatus"
     }
@@ -26,25 +26,36 @@ metadata {
 
     tiles(scale: 2) {
         multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
-            tileAttribute ("device.motion", key: "PRIMARY_CONTROL") {
-                attributeState "inactive", label:'no motion', icon:"st.motion.motion.inactive", backgroundColor:"#ffffff"
-                attributeState "active", label:'motion', icon:"st.motion.motion.active", backgroundColor:"#53a7c0"
+            tileAttribute ("device.carbonMonoxide", key: "PRIMARY_CONTROL") {
+                attributeState "clear", label:'no co2', icon:"st.alarm.carbon-monoxide.clear", backgroundColor:"#ffffff"
+                attributeState "detected", label:'co2', icon:"st.alarm.carbon-monoxide.carbon-monoxide", backgroundColor:"#53a7c0"
             }
         }
     }
 }
 
+/*
+def parse(String description) {
+    log.debug "parse description: $description"
+
+    def result = createEvent(name: attrName, value: attrValue)
+
+    log.debug "Parse returned ${result?.descriptionText}"
+    return result
+}
+*/
+
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "active" : "inactive"
-    def desc = status.tripped.current ? "Detected Motion" : "Motion Has Stopped"
+    def newState = status.tripped.current ? "detected" : "clear"
+    def desc = status.tripped.current ? "CO2 Detected" : "CO2 Cleared"
 
-    sendEvent (name: "motion", value: "${newState}", descriptionText: "${desc}")
+    sendEvent(name: "carbonMonoxide", value: "${newState}", descriptionText: "${desc}")
    	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)
 }
 
 def checkState() {
 	log.debug "checking state"
-    sendEvent (name: "motion", value: "inactive")
+    sendEvent (name: "carbonMonoxide", value: "clear")
 }

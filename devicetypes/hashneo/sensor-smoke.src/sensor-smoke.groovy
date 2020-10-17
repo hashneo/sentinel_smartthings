@@ -1,5 +1,5 @@
 /**
- *  sensor-contact
+ *  sensor-smoke
  *
  *  Copyright 2020 Steven Taylor
  *
@@ -13,9 +13,9 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "sensor-contact", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+    definition (name: "sensor-smoke", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
-        capability "Contact Sensor"
+        capability "Smoke Detector"
 
         command "updateStatus"
     }
@@ -26,9 +26,9 @@ metadata {
 
     tiles(scale: 2) {
         multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
-            tileAttribute ("device.contact", key: "PRIMARY_CONTROL") {
-                attributeState "closed", label:'no contact', icon:"st.contact.contact.inactive", backgroundColor:"#ffffff"
-                attributeState "open", label:'contact', icon:"st.contact.contact.active", backgroundColor:"#53a7c0"
+            tileAttribute ("device.smoke", key: "PRIMARY_CONTROL") {
+                attributeState "clear", label:'no smoke', icon:"st.alarm.smoke.clear", backgroundColor:"#ffffff"
+                attributeState "detected", label:'smoke', icon:"st.alarm.smoke.smoke", backgroundColor:"#53a7c0"
             }
         }
     }
@@ -37,14 +37,14 @@ metadata {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "open" : "closed"
-    def desc = status.tripped.current ? "Contact Open" : "Contact Closed"
+    def newState = status.tripped.current ? "detected" : "clear"
+    def desc = status.tripped.current ? "Smoke Detected" : "Smoke Cleared"
 
-    sendEvent(name: "contact", value: newState, descriptionText: desc)
-   	sendEvent(name: "battery", value: status.battery?.level, display: status.battery != null, displayed: status.battery != null, descriptionText: (status.battery == null ? "No Battery Present" : "") )
+    sendEvent(name: "smoke", value: "${newState}", descriptionText: "${desc}")
+   	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)
 }
 
 def checkState() {
 	log.debug "checking state"
-    sendEvent (name: "contact", value: "closed")
+    sendEvent (name: "smoke", value: "clear")
 }

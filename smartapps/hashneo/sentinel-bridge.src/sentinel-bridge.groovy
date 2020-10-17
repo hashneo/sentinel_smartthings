@@ -255,6 +255,14 @@ private createChildDevices(data){
                       addChildDevice("hashneo", "sensor-contact", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                       log.debug "Created new device -> ${device.name}"
                 break;
+                case "sensor.smooke":
+                      addChildDevice("hashneo", "sensor-smoke", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
+                      log.debug "Created new device -> ${device.name}"
+                break;
+                case "sensor.co2":
+                      addChildDevice("hashneo", "sensor-co2", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
+                      log.debug "Created new device -> ${device.name}"
+                break;
             }
 
         }
