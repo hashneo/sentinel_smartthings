@@ -1,5 +1,5 @@
 /**
- *  sensor-co2
+ *  alarm-panel
  *
  *  Copyright 2020 Steven Taylor
  *
@@ -13,9 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "sensor-co2", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
-        capability "Battery"
-        capability "Carbon Monoxide Detector"
+    definition (name: "alarm-panel", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+        capability "Alarm"
 
         command "updateStatus"
     }
@@ -25,11 +24,8 @@ metadata {
     }
 
     tiles(scale: 2) {
-        multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
-            tileAttribute ("device.carbonMonoxide", key: "PRIMARY_CONTROL") {
-                attributeState "clear", label:'no co2', icon:"st.alarm.carbon-monoxide.clear", backgroundColor:"#ffffff"
-                attributeState "detected", label:'co2', icon:"st.alarm.carbon-monoxide.carbon-monoxide", backgroundColor:"#53a7c0"
-            }
+        valueTile("display", "panel.display", width: 2, height: 2, canChangeIcon: false) {
+            label: '${panelValue}'
         }
     }
 }
@@ -47,15 +43,9 @@ def parse(String description) {
 
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
-
-    def newState = status.tripped.current ? "detected" : "clear"
-    def desc = status.tripped.current ? "CO2 Detected" : "CO2 Cleared"
-
-    sendEvent(name: "carbonMonoxide", value: "${newState}", descriptionText: "${desc}")
-   	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)
+   	sendEvent(name: "panelValue", value: status.message, display: true, displayed: true)
 }
 
 def checkState() {
 	log.debug "checking state"
-    sendEvent (name: "carbonMonoxide", value: "clear")
 }
