@@ -115,14 +115,19 @@ def page1() {
 }
 
 mappings {
-  path("/bridge/devices") {
+  path("/devices") {
     action: [
       GET: "getDevices"
     ]
   }
-  path("/switches/:command") {
+  path("/device/:id/status") {
     action: [
-      PUT: "updateSwitches"
+      GET: "getDeviceStatus"
+    ]
+  }
+  path("/device/:id/command/:name") {
+    action: [
+        POST: "deviceCommand"
     ]
   }
 }
@@ -213,7 +218,6 @@ def subscribeToEvents() {
     def devs // dynamic variable holding device collection.
 
 	def devices = []
-    def attrs = [:]
 
 	state.deviceAttributes.each { da ->
         devs = settings."${da.devices}"
@@ -233,7 +237,51 @@ def subscribeToEvents() {
 
          }
     }
-/*
+}
+
+def deviceDetails(device) {
+
+  def supportedAttributes = []
+  device.supportedAttributes.each {
+    supportedAttributes << it.name
+  }
+
+  def supportedCommands = [:]
+  device.supportedCommands.each {
+    def arguments = []
+    it.arguments.each { arg ->
+      arguments << "${arg}"
+    }
+    supportedCommands."${it.name}" = arguments
+
+  }
+
+  return [
+      deviceId: device.id,
+      type: device.typeName,
+      label: device.label,
+      manufacturerName: device.manufacturerName,
+      modelName: device.modelName,
+      name: device.name,
+      displayName: device.displayName,
+      components : [
+      	capabilities: supportedAttributes.unique{ c1, c2 ->
+    		c1 <=> c2
+    	},
+      	commands: supportedCommands
+      ]
+  ]
+}
+
+def getAvailableDevices(){
+
+	def devices = []
+
+    def attrs = [:]
+
+    state.deviceAttributes.each { da ->
+        def devs = settings."${da.devices}"
+		if (devs){
 			devices += devs
 
             try{
@@ -261,21 +309,10 @@ def subscribeToEvents() {
     	dev1.id <=> dev2.id
     }
 
-    devices.each { dev ->
-        def k = dev.id
-        def a = attrs."${k}".unique()
-        a.each { attr ->
-		    try{
-            	logger("manageSubscriptions(): Subscribing to attribute: ${attr}, for device id: ${k}","info")
-
-            	subscribe(dev, "${attr}", handleDeviceEvent)
-            } catch (e) {
-                log.error "something went wrong: $e"
-            }
-        }
-    }
-*/
-
+    return [
+    	devices : devices,
+    	attributes : attrs
+    ]
 }
 
 def getDevices() {
@@ -284,26 +321,101 @@ def getDevices() {
 
     def resp = []
 
-	def devices = []
-    state.deviceAttributes.each { da ->
-        def devs = settings."${da.devices}"
-		if (devs){
-			devices += devs
-        }
-    }
-
-    devices = devices.unique{ dev1, dev2 ->
-    	dev1.id <=> dev2.id
-    }
+	def ad = getAvailableDevices()
+	def devices = ad.devices
+    def attrs = ad.attributes
 
     devices.each { dev ->
-        resp << "${dev.displayName}"
+        def networkId = dev.deviceNetworkId
+
+        def childDevice = getChildDevice(networkId)
+
+        if (!childDevice){
+        	def details = deviceDetails(dev)
+            def states = [:]
+            def props = details.components.capabilities
+
+            props.each { name ->
+                def state = dev.currentState(name)
+                if ( state )
+
+                	states."${state.name}" = [
+                        				value : state.value,
+                    					timestamp : state.date
+                                    ]
+            }
+
+            details.components.states = states
+
+        	resp << details
+        }
 	}
 
     return resp
-
 }
 
+def getDeviceStatus(){
+
+    logger("getDeviceStatus(): Getting the status of device id => ${params.id}","info")
+
+    def resp = []
+
+	def r = getAvailableDevices()
+
+	def devices = r.devices
+    def attrs = r.attributes
+
+	def device = devices.find {element -> element.id == params.id}
+
+    if (!device){
+    	return httpError(404, "Not Found")
+    }
+
+    def props = attrs[params.id]
+
+    props.each { name ->
+        def state = device.currentState(name)
+    	resp << state
+    }
+
+    return resp
+}
+
+def getDeviceById(id) {
+	def ad = getAvailableDevices()
+	def devices = ad.devices
+
+  	return devices.find { it.id == id }
+}
+
+def deviceCommand() {
+    def device = getDeviceById(params.id)
+    def name = params.name
+
+    def args = request.JSON?.args
+
+    if (args == null) {
+        args = []
+    }
+
+	log.debug "device command: ${name} ${args}"
+
+    switch(args.size()) {
+        case 0:
+        device."$name"()
+        break;
+        case 1:
+        device."$name"(args.get(0))
+        break;
+        case 2:
+        device."$name"(args.get(0),args.get(1))
+        break;
+        default:
+            throw new Exception("Unhandled number of args")
+    }
+
+    return ["ok"]
+}
 
 def handleDeviceEvent(evt){
 
@@ -325,8 +437,8 @@ def handleDeviceEvent(evt){
       postUpdate( [
                     source : "smartthings",
                     type : "device.event",
-                    eventId : UUID.randomUUID().toString(),
                     payload : [
+                                eventId : UUID.randomUUID().toString(),
                                 attribute : evt.name,
                                 deviceId : evt.deviceId,
                                 capability : evt.name,
