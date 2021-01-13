@@ -39,30 +39,307 @@ def page1() {
     section("SmartThings Hub") {
       input "hostHub", "hub", title: "Select Hub", multiple: false, required: true
     }
-    section("Sentinel") {
+    section("General:") {
+        //input "prefDebugMode", "bool", title: "Enable debug logging?", defaultValue: true, displayDuringSetup: true
+        input (
+        	name: "configLoggingLevelIDE",
+        	title: "IDE Live Logging Level:\nMessages with this level and higher will be logged to the IDE.",
+        	type: "enum",
+        	options: [
+        	    "0" : "None",
+        	    "1" : "Error",
+        	    "2" : "Warning",
+        	    "3" : "Info",
+        	    "4" : "Debug",
+        	    "5" : "Trace"
+        	],
+        	defaultValue: "3",
+            displayDuringSetup: true,
+        	required: false
+        )
+    }
+    section("Sentinel:") {
       input "emailAddress", "text", title: "Email Address", description: "", required: true
       input "password", "password", title: "Password", description: "", required: true
     }
+    section("System Monitoring:") {
+        input "prefLogModeEvents", "bool", title:"Log Mode Events?", defaultValue: true, required: true
+        input "prefLogHubProperties", "bool", title:"Log Hub Properties?", defaultValue: true, required: true
+        input "prefLogLocationProperties", "bool", title:"Log Location Properties?", defaultValue: true, required: true
+    }
+
+    section("Devices To Monitor:") {
+        input "accelerometers", "capability.accelerationSensor", title: "Accelerometers", multiple: true, required: false
+        input "alarms", "capability.alarm", title: "Alarms", multiple: true, required: false
+        input "batteries", "capability.battery", title: "Batteries", multiple: true, required: false
+        input "beacons", "capability.beacon", title: "Beacons", multiple: true, required: false
+        input "buttons", "capability.button", title: "Buttons", multiple: true, required: false
+        input "cos", "capability.carbonMonoxideDetector", title: "Carbon Monoxide Detectors", multiple: true, required: false
+        input "co2s", "capability.carbonDioxideMeasurement", title: "Carbon Dioxide Detectors", multiple: true, required: false
+        input "colors", "capability.colorControl", title: "Color Controllers", multiple: true, required: false
+        input "consumables", "capability.consumable", title: "Consumables", multiple: true, required: false
+        input "contacts", "capability.contactSensor", title: "Contact Sensors", multiple: true, required: false
+        input "doorsControllers", "capability.doorControl", title: "Door Controllers", multiple: true, required: false
+        input "energyMeters", "capability.energyMeter", title: "Energy Meters", multiple: true, required: false
+        input "humidities", "capability.relativeHumidityMeasurement", title: "Humidity Meters", multiple: true, required: false
+        input "illuminances", "capability.illuminanceMeasurement", title: "Illuminance Meters", multiple: true, required: false
+        input "locks", "capability.lock", title: "Locks", multiple: true, required: false
+        input "motions", "capability.motionSensor", title: "Motion Sensors", multiple: true, required: false
+        input "musicPlayers", "capability.musicPlayer", title: "Music Players", multiple: true, required: false
+        input "peds", "capability.stepSensor", title: "Pedometers", multiple: true, required: false
+        input "phMeters", "capability.pHMeasurement", title: "pH Meters", multiple: true, required: false
+        input "powerMeters", "capability.powerMeter", title: "Power Meters", multiple: true, required: false
+        input "presences", "capability.presenceSensor", title: "Presence Sensors", multiple: true, required: false
+        input "pressures", "capability.sensor", title: "Pressure Sensors", multiple: true, required: false
+        input "shockSensors", "capability.shockSensor", title: "Shock Sensors", multiple: true, required: false
+        input "signalStrengthMeters", "capability.signalStrength", title: "Signal Strength Meters", multiple: true, required: false
+        input "sleepSensors", "capability.sleepSensor", title: "Sleep Sensors", multiple: true, required: false
+        input "smokeDetectors", "capability.smokeDetector", title: "Smoke Detectors", multiple: true, required: false
+        input "soundSensors", "capability.soundSensor", title: "Sound Sensors", multiple: true, required: false
+		input "spls", "capability.soundPressureLevel", title: "Sound Pressure Level Sensors", multiple: true, required: false
+		input "switches", "capability.switch", title: "Switches", multiple: true, required: false
+        input "switchLevels", "capability.switchLevel", title: "Switch Levels", multiple: true, required: false
+        input "tamperAlerts", "capability.tamperAlert", title: "Tamper Alerts", multiple: true, required: false
+        input "temperatures", "capability.temperatureMeasurement", title: "Temperature Sensors", multiple: true, required: false
+        input "thermostats", "capability.thermostat", title: "Thermostats", multiple: true, required: false
+        input "threeAxis", "capability.threeAxis", title: "Three-axis (Orientation) Sensors", multiple: true, required: false
+        input "touchs", "capability.touchSensor", title: "Touch Sensors", multiple: true, required: false
+        input "uvs", "capability.ultravioletIndex", title: "UV Sensors", multiple: true, required: false
+        input "valves", "capability.valve", title: "Valves", multiple: true, required: false
+        input "volts", "capability.voltageMeasurement", title: "Voltage Meters", multiple: true, required: false
+        input "waterSensors", "capability.waterSensor", title: "Water Sensors", multiple: true, required: false
+        input "windowShades", "capability.windowShade", title: "Window Shades", multiple: true, required: false
+    }
+
+  }
+}
+
+mappings {
+  path("/bridge/devices") {
+    action: [
+      GET: "getDevices"
+    ]
+  }
+  path("/switches/:command") {
+    action: [
+      PUT: "updateSwitches"
+    ]
   }
 }
 
 def installed() {
-	initialize()
+	updated()
 }
 
 def updated() {
-	log.debug "Updated with settings: ${settings}"
+	//log.debug "Updated with settings: ${settings}"
+
+	// Update internal state:
+    state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 3
+
 	initialize()
 }
 
 def initialize() {
+
+    // Build array of device collections and the attributes we want to report on for that collection:
+    //  Note, the collection names are stored as strings. Adding references to the actual collection
+    //  objects causes major issues (possibly memory issues?).
+    state.deviceAttributes = []
+
+    state.deviceAttributes << [ devices: 'accelerometers', attributes: ['acceleration']]
+    state.deviceAttributes << [ devices: 'alarms', attributes: ['alarm']]
+    state.deviceAttributes << [ devices: 'batteries', attributes: ['battery']]
+    state.deviceAttributes << [ devices: 'beacons', attributes: ['presence']]
+    state.deviceAttributes << [ devices: 'buttons', attributes: ['button']]
+    state.deviceAttributes << [ devices: 'cos', attributes: ['carbonMonoxide']]
+    state.deviceAttributes << [ devices: 'co2s', attributes: ['carbonDioxide']]
+    state.deviceAttributes << [ devices: 'colors', attributes: ['hue','saturation','color']]
+    state.deviceAttributes << [ devices: 'consumables', attributes: ['consumableStatus']]
+    state.deviceAttributes << [ devices: 'contacts', attributes: ['contact']]
+    state.deviceAttributes << [ devices: 'doorsControllers', attributes: ['door']]
+    state.deviceAttributes << [ devices: 'energyMeters', attributes: ['energy']]
+    state.deviceAttributes << [ devices: 'humidities', attributes: ['humidity']]
+    state.deviceAttributes << [ devices: 'illuminances', attributes: ['illuminance']]
+    state.deviceAttributes << [ devices: 'locks', attributes: ['lock']]
+    state.deviceAttributes << [ devices: 'motions', attributes: ['motion']]
+    state.deviceAttributes << [ devices: 'musicPlayers', attributes: ['status','level','trackDescription','trackData','mute']]
+    state.deviceAttributes << [ devices: 'peds', attributes: ['steps','goal']]
+    state.deviceAttributes << [ devices: 'phMeters', attributes: ['pH']]
+    state.deviceAttributes << [ devices: 'powerMeters', attributes: ['power','voltage','current','powerFactor']]
+    state.deviceAttributes << [ devices: 'presences', attributes: ['presence']]
+    state.deviceAttributes << [ devices: 'pressures', attributes: ['pressure']]
+    state.deviceAttributes << [ devices: 'shockSensors', attributes: ['shock']]
+    state.deviceAttributes << [ devices: 'signalStrengthMeters', attributes: ['lqi','rssi']]
+    state.deviceAttributes << [ devices: 'sleepSensors', attributes: ['sleeping']]
+    state.deviceAttributes << [ devices: 'smokeDetectors', attributes: ['smoke']]
+    state.deviceAttributes << [ devices: 'soundSensors', attributes: ['sound']]
+	state.deviceAttributes << [ devices: 'spls', attributes: ['soundPressureLevel']]
+	state.deviceAttributes << [ devices: 'switches', attributes: ['switch']]
+    state.deviceAttributes << [ devices: 'switchLevels', attributes: ['level']]
+    state.deviceAttributes << [ devices: 'tamperAlerts', attributes: ['tamper']]
+    state.deviceAttributes << [ devices: 'temperatures', attributes: ['temperature']]
+    state.deviceAttributes << [ devices: 'thermostats', attributes: ['temperature','heatingSetpoint','coolingSetpoint','thermostatSetpoint','thermostatMode','thermostatFanMode','thermostatOperatingState','thermostatSetpointMode','scheduledSetpoint','optimisation','windowFunction']]
+    state.deviceAttributes << [ devices: 'threeAxis', attributes: ['threeAxis']]
+    state.deviceAttributes << [ devices: 'touchs', attributes: ['touch']]
+    state.deviceAttributes << [ devices: 'uvs', attributes: ['ultravioletIndex']]
+    state.deviceAttributes << [ devices: 'valves', attributes: ['contact']]
+    state.deviceAttributes << [ devices: 'volts', attributes: ['voltage']]
+    state.deviceAttributes << [ devices: 'waterSensors', attributes: ['water']]
+    state.deviceAttributes << [ devices: 'windowShades', attributes: ['windowShade']]
+
     subscribeToEvents()
+
     setWebhook()
+
     loadDevices()
+
 }
 
 def subscribeToEvents() {
+
+	// Unsubscribe:
+    unsubscribe()
+
 	subscribe(location, null, lanResponseHandler, [filterEvents:false])
+
+    // Subscribe to App Touch events:
+    //subscribe(app,handleAppTouch)
+
+    // Subscribe to mode events:
+    //if (prefLogModeEvents) subscribe(location, "mode", handleModeEvent)
+
+    // Subscribe to device attributes (iterate over each attribute for each device collection in state.deviceAttributes):
+    def devs // dynamic variable holding device collection.
+
+	def devices = []
+    def attrs = [:]
+
+	state.deviceAttributes.each { da ->
+        devs = settings."${da.devices}"
+
+        if (devs && (da.attributes)) {
+
+            da.attributes.each { attr ->
+                logger("manageSubscriptions(): Subscribing to attribute: ${attr}, for devices: ${da.devices}","info")
+                // There is no need to check if all devices in the collection have the attribute.
+                try{
+                	subscribe(devs, attr, handleDeviceEvent)
+                } catch (e) {
+		      		log.error "subscribe(): error subscribing: $e"
+  				}
+
+            }
+
+         }
+    }
+/*
+			devices += devs
+
+            try{
+                devs.each{ dev ->
+
+					def k = dev.id
+
+                    if ( !attrs.containsKey(k) ){
+                        attrs."${k}" = []
+                    }
+
+                    attrs."${k}".addAll( da.attributes )
+
+                }
+            } catch (e) {
+		      log.error "something went wrong: $e"
+  			}
+
+
+        }
+
+    }
+
+    devices = devices.unique{ dev1, dev2 ->
+    	dev1.id <=> dev2.id
+    }
+
+    devices.each { dev ->
+        def k = dev.id
+        def a = attrs."${k}".unique()
+        a.each { attr ->
+		    try{
+            	logger("manageSubscriptions(): Subscribing to attribute: ${attr}, for device id: ${k}","info")
+
+            	subscribe(dev, "${attr}", handleDeviceEvent)
+            } catch (e) {
+                log.error "something went wrong: $e"
+            }
+        }
+    }
+*/
+
+}
+
+def getDevices() {
+
+    logger("getDevices(): Getting a list of devices","info")
+
+    def resp = []
+
+	def devices = []
+    state.deviceAttributes.each { da ->
+        def devs = settings."${da.devices}"
+		if (devs){
+			devices += devs
+        }
+    }
+
+    devices = devices.unique{ dev1, dev2 ->
+    	dev1.id <=> dev2.id
+    }
+
+    devices.each { dev ->
+        resp << "${dev.displayName}"
+	}
+
+    return resp
+
+}
+
+
+def handleDeviceEvent(evt){
+
+  try{
+    def d = evt.device
+
+    def deviceId = evt.deviceId
+    def networkId = d.deviceNetworkId
+
+    logger("handleDeviceEvent(): $evt.displayName($evt.deviceId => $evt.name:$evt.unit) $evt.value", "info")
+
+    def childDevice = getChildDevice(networkId)
+
+    if ( childDevice ) {
+      logger("handleDeviceEvent(): device id => ${networkId}, belongs to me, skipping", "debug")
+    } else {
+      logger("handleDeviceEvent(): Sending update to Sentinel for device id => ${deviceId}", "debug")
+
+      postUpdate( [
+                    source : "smartthings",
+                    type : "device.event",
+                    eventId : UUID.randomUUID().toString(),
+                    payload : [
+                                attribute : evt.name,
+                                deviceId : evt.deviceId,
+                                capability : evt.name,
+                                value : evt.value
+                              ]
+                            ]
+                 )
+	}
+
+  } catch (e) {
+      log.error "something went wrong: $e"
+  }
+
 }
 
 def lanResponseHandler(evt) {
@@ -72,10 +349,11 @@ def lanResponseHandler(evt) {
   def body = getJsonFromBase64(map.body)
 
   if ( headers['x-security-key'] != state.securityKey ){
+  	  logger("lanResponseHandler(evt): ${headers['x-security-key']} is an invalid security key", "info")
       return;
   }
 
-  log.trace "Body: ${body}"
+  logger("lanResponseHandler(evt): event dody: ${body}", "trace")
 
   processEvent(body)
 }
@@ -89,7 +367,8 @@ private processEvent(evt) {
         def childDevice = getChildDevice(deviceId)
 
 		if ( childDevice ) {
-	    	log.debug "processEvent: ${evt.type} for device id => ${deviceId}"
+
+			logger("processEvent(evt): ${evt.type} for device id => ${deviceId}", "trace")
 
             switch (evt.type){
                 case 'device.update':
@@ -112,32 +391,33 @@ private getToken(){
 	return "Bearer ${state.token}";
 }
 
-private login(){
+private login(force = false){
 
     try {
 
-        if ( state?.token_exp != null ) {
+		if (!force){
+            if ( state?.token_exp != null ) {
 
-            long timeDiff
-            def now = new Date()
-            def end =  Date.parse("yyy-MM-dd'T'HH:mm:ssZ","${state.token_exp}".replace("+00:00","+0000"))
+                long timeDiff
+                def now = new Date()
+                def end =  Date.parse("yyy-MM-dd'T'HH:mm:ssZ","${state.token_exp}".replace("+00:00","+0000"))
 
-            long unxNow = now.getTime()
-            long unxEnd = end.getTime()
+                long unxNow = now.getTime()
+                long unxEnd = end.getTime()
 
-            unxNow = unxNow/1000
-            unxEnd = unxEnd/1000
+                unxNow = unxNow/1000
+                unxEnd = unxEnd/1000
 
-            timeDiff = Math.abs(unxNow-unxEnd)
-            timeDiff = Math.round(timeDiff/60)
+                timeDiff = Math.abs(unxNow-unxEnd)
+                timeDiff = Math.round(timeDiff/60)
 
-            log.debug "Expiration of token in ${timeDiff} minutes"
+                //log.debug "Expiration of token in ${timeDiff} minutes"
 
-            // No need to reauth if < 6 hours
-            if ( timeDiff > (6*60) )
-            	return
-        }
-
+                // No need to reauth if < 6 hours
+                if ( timeDiff > (6*60) )
+                    return
+            }
+		}
         def params = [
           uri: "https://home.steventaylor.me/api/auth/login",
           body: [
@@ -151,7 +431,7 @@ private login(){
     		log.trace "response: ${resp}"
 
             resp.headers.each {
-               log.debug "${it.name} : ${it.value}"
+               //log.debug "${it.name} : ${it.value}"
             }
 
             state.token = resp.data.data.token
@@ -168,8 +448,8 @@ private login(){
 
             state.token_exp = new Date( (obj.exp as long) * 1000 ).format("yyy-MM-dd'T'HH:mm:ssZ")
 
-            log.debug "token => ${state.token}"
-            log.debug "token expires => " + state.token_exp
+            //log.debug "token => ${state.token}"
+            //log.debug "token expires => " + state.token_exp
         }
     } catch (e) {
         log.error "something went wrong: $e"
@@ -181,10 +461,11 @@ private setWebhook(){
     login()
 
     try {
-    	state.securityKey = UUID.randomUUID().toString()
+
+        state.securityKey = UUID.randomUUID().toString()
 
         def params = [
-          uri: "https://home.steventaylor.me/api/webhook/register",
+          uri: "https://home.steventaylor.me/api/eventbus/notifications/register",
           headers: [ Authorization : getToken() ],
           body: [
             url : getNotifyAddress(),
@@ -198,7 +479,7 @@ private setWebhook(){
     		log.trace "response: ${resp}"
 
             resp.headers.each {
-               log.debug "${it.name} : ${it.value}"
+               //log.debug "${it.name} : ${it.value}"
             }
 
         }
@@ -207,9 +488,37 @@ private setWebhook(){
     }
 }
 
-private loadDevices(){
+private postUpdate(body){
 
     login()
+
+    try {
+
+        def params = [
+          uri: "https://home.steventaylor.me/api/eventbus/notify",
+          headers: [ Authorization : getToken() ],
+          body: body
+        ]
+
+        httpPostJson(params) { resp ->
+
+    		log.trace "response: ${resp}"
+
+            resp.headers.each {
+               //log.debug "${it.name} : ${it.value}"
+            }
+
+        }
+
+    } catch (e) {
+        log.error "something went wrong: $e"
+    }
+}
+
+
+private loadDevices(){
+
+    login(true)
 
     try {
         def params = [
@@ -219,15 +528,19 @@ private loadDevices(){
 
         httpGet(params) { resp ->
             resp.headers.each {
-                log.debug "${it.name} : ${it.value}"
+                //log.debug "${it.name} : ${it.value}"
             }
-            log.debug "response contentType: ${resp.contentType}"
+            //log.debug "response contentType: ${resp.contentType}"
             //log.debug "response data: ${resp.data}"
 
             createChildDevices(resp.data)
         }
     } catch (e) {
-        log.error "something went wrong: $e"
+    	if (e.message.equals("Forbidden")) {
+    		//log.debug "User unauthorized, requesting new token"
+        } else {
+        	//log.error "loadDevices Error: $e"
+        }
     }
 }
 
@@ -240,28 +553,32 @@ private createChildDevices(data){
     data.devices.each {
         def device = it;
 
-        log.debug "${device.id} -> ${device.name} : ${device.type}"
+        //log.debug "${device.id} -> ${device.name} : ${device.type}"
 
         def deviceId = device.id
 
         if (!getChildDevice(device.id)) {
 
             switch ( device.type ){
+                case "alarm.panel":
+                      addChildDevice("hashneo", "alarm-panel", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
+                      //log.debug "Created new device -> ${device.name}"
+                break;
                 case "sensor.motion":
                       addChildDevice("hashneo", "sensor-motion", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      log.debug "Created new device -> ${device.name}"
+                      //log.debug "Created new device -> ${device.name}"
                 break;
                 case "sensor.contact":
                       addChildDevice("hashneo", "sensor-contact", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      log.debug "Created new device -> ${device.name}"
+                      //log.debug "Created new device -> ${device.name}"
                 break;
-                case "sensor.smooke":
+                case "sensor.smoke":
                       addChildDevice("hashneo", "sensor-smoke", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      log.debug "Created new device -> ${device.name}"
+                      //log.debug "Created new device -> ${device.name}"
                 break;
                 case "sensor.co2":
                       addChildDevice("hashneo", "sensor-co2", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      log.debug "Created new device -> ${device.name}"
+                      //log.debug "Created new device -> ${device.name}"
                 break;
             }
 
@@ -315,4 +632,40 @@ private String convertPortToHex(port) {
 private removeChildDevices() {
   getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
 }
+
+/**
+ *  logger()
+ *
+ *  Wrapper function for all logging.
+ **/
+private logger(msg, level = "debug") {
+
+   switch(level) {
+        case "error":
+            if (state.loggingLevelIDE >= 1) log.error msg
+            break
+
+        case "warn":
+            if (state.loggingLevelIDE >= 2) log.warn msg
+            break
+
+        case "info":
+            if (state.loggingLevelIDE >= 3) log.info msg
+            break
+
+        case "debug":
+            if (state.loggingLevelIDE >= 4) log.debug msg
+            break
+
+        case "trace":
+            if (state.loggingLevelIDE >= 5) log.trace msg
+            break
+
+        default:
+            log.debug msg
+            break
+    }
+
+}
+
 
