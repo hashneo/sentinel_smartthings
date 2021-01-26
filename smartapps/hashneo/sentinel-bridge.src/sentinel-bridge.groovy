@@ -130,6 +130,17 @@ mappings {
         POST: "deviceCommand"
     ]
   }
+  path("/resetChildDevices") {
+    action: [
+        GET: "deleteChildDevices"
+    ]
+  }
+
+}
+
+def deleteChildDevices() {
+	removeChildDevices()
+    return ["ok"]
 }
 
 def installed() {
@@ -137,7 +148,7 @@ def installed() {
 }
 
 def updated() {
-	//log.debug "Updated with settings: ${settings}"
+    logger("updated(): Updated with settings: ${settings}","debug")
 
 	// Update internal state:
     state.loggingLevelIDE = (settings.configLoggingLevelIDE) ? settings.configLoggingLevelIDE.toInteger() : 3
@@ -230,7 +241,7 @@ def subscribeToEvents() {
                 try{
                 	subscribe(devs, attr, handleDeviceEvent)
                 } catch (e) {
-		      		log.error "subscribe(): error subscribing: $e"
+		      		logger("subscribe(): error subscribing: $e", "error")
   				}
 
             }
@@ -281,10 +292,11 @@ def getAvailableDevices(){
 
     state.deviceAttributes.each { da ->
         def devs = settings."${da.devices}"
-		if (devs){
+		if (devs) {
+
 			devices += devs
 
-            try{
+            try {
                 devs.each{ dev ->
 
 					def k = dev.id
@@ -297,12 +309,9 @@ def getAvailableDevices(){
 
                 }
             } catch (e) {
-		      log.error "something went wrong: $e"
+		      logger("getAvailableDevices(): error: $e", "error")
   			}
-
-
         }
-
     }
 
     devices = devices.unique{ dev1, dev2 ->
@@ -398,7 +407,7 @@ def deviceCommand() {
         args = []
     }
 
-	log.debug "device command: ${name} ${args}"
+	logger("deviceCommand(): ${name} ${args}", "debug")
 
     switch(args.size()) {
         case 0:
@@ -420,6 +429,7 @@ def deviceCommand() {
 def handleDeviceEvent(evt){
 
   try{
+
     def d = evt.device
 
     def deviceId = evt.deviceId
@@ -449,25 +459,25 @@ def handleDeviceEvent(evt){
 	}
 
   } catch (e) {
-      log.error "something went wrong: $e"
+      logger("handleDeviceEvent(evt): error: $e", "error")
   }
 
 }
 
 def lanResponseHandler(evt) {
-  def map = stringToMap(evt.stringValue)
+    def map = stringToMap(evt.stringValue)
 
-  def headers = getHttpHeaders(map.headers)
-  def body = getJsonFromBase64(map.body)
+    def headers = getHttpHeaders(map.headers)
+    def body = getJsonFromBase64(map.body)
 
-  if ( headers['x-security-key'] != state.securityKey ){
-  	  logger("lanResponseHandler(evt): ${headers['x-security-key']} is an invalid security key", "info")
-      return;
-  }
+    if ( headers['x-security-key'] != state.securityKey ){
+        logger("lanResponseHandler(evt): ${headers['x-security-key']} is an invalid security key", "info")
+        return;
+    }
 
-  logger("lanResponseHandler(evt): event dody: ${body}", "trace")
+    logger("lanResponseHandler(evt): event body: ${body}", "trace")
 
-  processEvent(body)
+    processEvent(body)
 }
 
 private processEvent(evt) {
@@ -476,17 +486,19 @@ private processEvent(evt) {
 
     if ( deviceId ){
 
+		logger("processEvent(evt): ${evt.type} for device id => ${deviceId}", "trace")
+
         def childDevice = getChildDevice(deviceId)
 
 		if ( childDevice ) {
-
-			logger("processEvent(evt): ${evt.type} for device id => ${deviceId}", "trace")
 
             switch (evt.type){
                 case 'device.update':
                 	childDevice.updateStatus( evt.payload?.value );
                 break
             }
+        } else {
+        	logger("processEvent(evt): Could not find child device id => ${deviceId}", "trace")
         }
    	}
 }
@@ -523,13 +535,14 @@ private login(force = false){
                 timeDiff = Math.abs(unxNow-unxEnd)
                 timeDiff = Math.round(timeDiff/60)
 
-                //log.debug "Expiration of token in ${timeDiff} minutes"
+				logger("login(force): expiration of token in ${timeDiff} minutes", "debug")
 
                 // No need to reauth if < 6 hours
                 if ( timeDiff > (6*60) )
                     return
             }
 		}
+
         def params = [
           uri: "https://home.steventaylor.me/api/auth/login",
           body: [
@@ -540,10 +553,10 @@ private login(force = false){
 
         httpPostJson(params) { resp ->
 
-    		log.trace "response: ${resp}"
+			logger("login(force): response: ${resp}", "trace")
 
             resp.headers.each {
-               //log.debug "${it.name} : ${it.value}"
+				logger("login(force): Header => ${it.name} : ${it.value}", "debug")
             }
 
             state.token = resp.data.data.token
@@ -560,11 +573,11 @@ private login(force = false){
 
             state.token_exp = new Date( (obj.exp as long) * 1000 ).format("yyy-MM-dd'T'HH:mm:ssZ")
 
-            //log.debug "token => ${state.token}"
-            //log.debug "token expires => " + state.token_exp
+			logger("login(force): token => ${state.token}", "debug")
+            logger("login(force): token expires => " + state.token_exp, "debug")
         }
     } catch (e) {
-        log.error "something went wrong: $e"
+    	logger("login(force): error: $e", "error")
     }
 }
 
@@ -588,15 +601,15 @@ private setWebhook(){
 
         httpPostJson(params) { resp ->
 
-    		log.trace "response: ${resp}"
+			logger("setWebhook(): Response: ${resp}", "debug")
 
             resp.headers.each {
-               //log.debug "${it.name} : ${it.value}"
+               logger("setWebhook(): Header => ${it.name} : ${it.value}", "debug")
             }
-
         }
+
     } catch (e) {
-        log.error "something went wrong: $e"
+      	logger("setWebhook(): error: $e", "error")
     }
 }
 
@@ -614,19 +627,18 @@ private postUpdate(body){
 
         httpPostJson(params) { resp ->
 
-    		log.trace "response: ${resp}"
+			logger("postUpdate(body): Response: ${resp}", "debug")
 
             resp.headers.each {
-               //log.debug "${it.name} : ${it.value}"
+               logger("postUpdate(body): Header => ${it.name} : ${it.value}", "debug")
             }
 
         }
 
     } catch (e) {
-        log.error "something went wrong: $e"
+      	logger("postUpdate(body): error: $e", "error")
     }
 }
-
 
 private loadDevices(){
 
@@ -639,21 +651,22 @@ private loadDevices(){
         ]
 
         httpGet(params) { resp ->
+
+   			logger("loadDevices(): Response: ${resp}", "debug")
+
             resp.headers.each {
-                //log.debug "${it.name} : ${it.value}"
+                logger("loadDevices(): Header => ${it.name} : ${it.value}", "debug")
             }
-            //log.debug "response contentType: ${resp.contentType}"
-            //log.debug "response data: ${resp.data}"
+
+            logger("loadDevices(): Content-Type: ${resp.contentType}", "debug")
+            logger("loadDevices(): Data: ${resp.data}", "debug")
 
             createChildDevices(resp.data)
         }
     } catch (e) {
-    	if (e.message.equals("Forbidden")) {
-    		//log.debug "User unauthorized, requesting new token"
-        } else {
-        	//log.error "loadDevices Error: $e"
-        }
+    	logger("loadDevices(): error: $e", "error")
     }
+
 }
 
 private createChildDevices(data){
@@ -665,37 +678,37 @@ private createChildDevices(data){
     data.devices.each {
         def device = it;
 
-        //log.debug "${device.id} -> ${device.name} : ${device.type}"
-
         def deviceId = device.id
 
-        if (!getChildDevice(device.id)) {
+        if ( device.plugin.name != "smartthings" && !getChildDevice(device.id)) {
+
+			def newDevice = null
 
             switch ( device.type ){
                 case "alarm.panel":
-                      addChildDevice("hashneo", "alarm-panel", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      //log.debug "Created new device -> ${device.name}"
+                      newDevice = addChildDevice("hashneo", "alarm-panel", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                 break;
                 case "sensor.motion":
-                      addChildDevice("hashneo", "sensor-motion", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      //log.debug "Created new device -> ${device.name}"
+                      newDevice = addChildDevice("hashneo", "sensor-motion", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                 break;
                 case "sensor.contact":
-                      addChildDevice("hashneo", "sensor-contact", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      //log.debug "Created new device -> ${device.name}"
+                      newDevice = addChildDevice("hashneo", "sensor-contact", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                 break;
                 case "sensor.smoke":
-                      addChildDevice("hashneo", "sensor-smoke", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      //log.debug "Created new device -> ${device.name}"
+                      newDevice = addChildDevice("hashneo", "sensor-smoke", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                 break;
                 case "sensor.co2":
-                      addChildDevice("hashneo", "sensor-co2", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
-                      //log.debug "Created new device -> ${device.name}"
+                      newDevice = addChildDevice("hashneo", "sensor-co2", deviceId, hostHub.id, [name: device.name, label: device.name, completedSetup: true])
                 break;
             }
 
+			if ( newDevice != null ){
+                logger("createChildDevices(data): Created new ${device.type} device => ${device.name}", "debug")
+            }
         }
+
     }
+
 }
 
 private getHttpHeaders(headers) {
@@ -742,15 +755,20 @@ private String convertPortToHex(port) {
 }
 
 private removeChildDevices() {
-  getAllChildDevices().each { deleteChildDevice(it.deviceNetworkId) }
+
+  getAllChildDevices().each { device ->
+
+  	try{
+      	logger("removeChildDevices():${device.id} -> ${device.name} : ${device.type}", "debug")
+		deleteChildDevice(device.deviceNetworkId)
+    }
+    catch(e){
+    	logger("removeChildDevices(): error: $e", "error")
+    }
+  }
 }
 
-/**
- *  logger()
- *
- *  Wrapper function for all logging.
- **/
-private logger(msg, level = "debug") {
+public logger(msg, level = "debug") {
 
    switch(level) {
         case "error":
@@ -779,5 +797,3 @@ private logger(msg, level = "debug") {
     }
 
 }
-
-
