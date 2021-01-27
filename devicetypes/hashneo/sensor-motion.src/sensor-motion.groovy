@@ -37,8 +37,8 @@ metadata {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "active" : "inactive"
-    def desc = status.tripped.current ? "Detected Motion" : "Motion Has Stopped"
+    def newState = status.motion.tripped.current ? "active" : "inactive"
+    def desc = status.motion.tripped.current ? "Detected Motion" : "Motion Has Stopped"
 
     sendEvent (name: "motion", value: "${newState}", descriptionText: "${desc}")
    	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)

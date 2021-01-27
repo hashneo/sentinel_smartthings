@@ -37,8 +37,8 @@ metadata {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "open" : "closed"
-    def desc = status.tripped.current ? "Contact Open" : "Contact Closed"
+    def newState = status.contact.tripped.current ? "open" : "closed"
+    def desc = status.contact.tripped.current ? "Contact Open" : "Contact Closed"
 
     sendEvent(name: "contact", value: newState, descriptionText: desc)
    	sendEvent(name: "battery", value: status.battery?.level, display: status.battery != null, displayed: status.battery != null, descriptionText: (status.battery == null ? "No Battery Present" : "") )

@@ -37,8 +37,8 @@ metadata {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "detected" : "clear"
-    def desc = status.tripped.current ? "Smoke Detected" : "Smoke Cleared"
+    def newState = status.smoke.tripped.current ? "detected" : "clear"
+    def desc = status.smoke.tripped.current ? "Smoke Detected" : "Smoke Cleared"
 
     sendEvent(name: "smoke", value: "${newState}", descriptionText: "${desc}")
    	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)

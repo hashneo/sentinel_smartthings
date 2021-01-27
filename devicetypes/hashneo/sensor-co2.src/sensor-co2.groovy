@@ -48,8 +48,8 @@ def parse(String description) {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.tripped.current ? "detected" : "clear"
-    def desc = status.tripped.current ? "CO2 Detected" : "CO2 Cleared"
+    def newState = status.co2.tripped.current ? "detected" : "clear"
+    def desc = status.co2.tripped.current ? "CO2 Detected" : "CO2 Cleared"
 
     sendEvent(name: "carbonMonoxide", value: "${newState}", descriptionText: "${desc}")
    	sendEvent(name: "battery", value: status.battery?.level, display: true, displayed: true)
