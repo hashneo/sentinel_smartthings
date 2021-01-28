@@ -1,5 +1,5 @@
 /**
- *  power-meter
+ *  power-meter-grid
  *
  *  Copyright 2020 Steven Taylor
  *
@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "power-meter", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+    definition (name: "power-meter-grid", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Energy Meter"
         capability "Power Meter"
         capability "Sensor"
