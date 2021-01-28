@@ -26,7 +26,7 @@ metadata {
     }
 
     tiles(scale: 2) {
-        multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
+        multiAttributeTile(name:"power", type: "generic", width: 6, height: 4){
 			tileAttribute("device.power", key: "PRIMARY_CONTROL") {
 				attributeState("default", label:'${currentValue} W')
 			}
@@ -42,8 +42,11 @@ metadata {
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    sendEvent(name: "energy", value: status.grid.in, unit: 'kWh')
-    sendEvent(name: "power", value: status.demand, unit: "W")
+    def gridIn  = Float.parseFloat( status.grid.in );
+    def gridOut = Float.parseFloat( status.grid.out );
+
+    sendEvent(name: "energy", value: (gridIn-gridOut), unit: 'kWh')
+    sendEvent(name: "power", value: status.demand, unit: "kWh")
 }
 
 def checkState() {
