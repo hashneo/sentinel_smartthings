@@ -16,6 +16,7 @@ metadata {
     definition (name: "sensor-motion", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
         capability "Motion Sensor"
+        capability "Sensor"
 
         command "updateStatus"
     }

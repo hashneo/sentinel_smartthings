@@ -16,6 +16,7 @@ metadata {
     definition (name: "sensor-smoke", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
         capability "Smoke Detector"
+        capability "Sensor"
 
         command "updateStatus"
     }

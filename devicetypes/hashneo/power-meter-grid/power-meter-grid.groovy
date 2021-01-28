@@ -1,5 +1,5 @@
 /**
- *  sensor-contact
+ *  power-meter
  *
  *  Copyright 2020 Steven Taylor
  *
@@ -13,9 +13,9 @@
  *  for the specific language governing permissions and limitations under the License.
  */
 metadata {
-    definition (name: "sensor-contact", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
-        capability "Battery"
-        capability "Contact Sensor"
+    definition (name: "power-meter", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
+        capability "Energy Meter"
+        capability "Power Meter"
         capability "Sensor"
 
         command "updateStatus"
@@ -27,25 +27,25 @@ metadata {
 
     tiles(scale: 2) {
         multiAttributeTile(name:"zone", type: "generic", width: 6, height: 4){
-            tileAttribute ("device.contact", key: "PRIMARY_CONTROL") {
-                attributeState "closed", label:'no contact', icon:"st.contact.contact.inactive", backgroundColor:"#ffffff"
-                attributeState "open", label:'contact', icon:"st.contact.contact.active", backgroundColor:"#53a7c0"
-            }
+			tileAttribute("device.power", key: "PRIMARY_CONTROL") {
+				attributeState("default", label:'${currentValue} W')
+			}
+			tileAttribute("device.energy", key: "SECONDARY_CONTROL") {
+				attributeState("default", label:'${currentValue} kWh')
+			}
         }
+
+        main (["power","energy"])
     }
 }
 
 def updateStatus(Map status) {
     log.debug "updateStatus => '${status}'"
 
-    def newState = status.contact.tripped.current ? "open" : "closed"
-    def desc = status.contact.tripped.current ? "Contact Open" : "Contact Closed"
-
-    sendEvent(name: "contact", value: newState, descriptionText: desc)
-   	sendEvent(name: "battery", value: status.battery?.level, display: status.battery != null, displayed: status.battery != null, descriptionText: (status.battery == null ? "No Battery Present" : "") )
+    sendEvent(name: "energy", value: status.grid.in, unit: 'kWh')
+    sendEvent(name: "power", value: status.demand, unit: "W")
 }
 
 def checkState() {
 	log.debug "checking state"
-    sendEvent (name: "contact", value: "closed")
 }

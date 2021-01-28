@@ -16,6 +16,7 @@ metadata {
     definition (name: "sensor-co2", namespace: "hashneo", author: "Steven Taylor", cstHandler: true) {
         capability "Battery"
         capability "Carbon Monoxide Detector"
+        capability "Sensor"
 
         command "updateStatus"
     }
