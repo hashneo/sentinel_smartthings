@@ -40,13 +40,16 @@ metadata {
 }
 
 def updateStatus(Map status) {
-    log.debug "updateStatus => '${status}'"
 
     def gridIn  = Float.parseFloat( status.grid.in );
     def gridOut = Float.parseFloat( status.grid.out );
 
-    sendEvent(name: "energy", value: (gridIn-gridOut), unit: 'kWh')
-    sendEvent(name: "power", value: status.demand, unit: "kWh")
+	if ( !status.demand.equals("nan") ){
+        log.debug "updateStatus => '${status}'"
+
+        sendEvent(name: "energy", value: (gridIn-gridOut), unit: 'kWh')
+        sendEvent(name: "power", value: status.demand, unit: "kWh")
+    }
 }
 
 def checkState() {
