@@ -199,7 +199,7 @@ def initialize() {
     state.deviceAttributes << [ devices: 'threeAxis', attributes: ['threeAxis']]
     state.deviceAttributes << [ devices: 'touchs', attributes: ['touch']]
     state.deviceAttributes << [ devices: 'uvs', attributes: ['ultravioletIndex']]
-    state.deviceAttributes << [ devices: 'valves', attributes: ['contact']]
+    state.deviceAttributes << [ devices: 'valves', attributes: ['valve']]
     state.deviceAttributes << [ devices: 'volts', attributes: ['voltage']]
     state.deviceAttributes << [ devices: 'waterSensors', attributes: ['water']]
     state.deviceAttributes << [ devices: 'windowShades', attributes: ['windowShade']]
